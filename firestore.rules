@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reglas para la colección 'tareas'
+    match /tareas/{tareaId} {
+      
+      // 1. LECTURA (get y list):
+      // Solo se permite leer si el usuario está autenticado y el campo 'userId'
+      // del documento coincide exactamente con su UID.
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+
+      // 2. CREACIÓN:
+      // Solo se permite crear una tarea si el usuario está autenticado y
+      // asigna su propio UID en el campo 'userId'.
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+
+      // 3. ACTUALIZACIÓN (editar y completar):
+      // Solo el dueño de la tarea puede modificarla, y no se le permite
+      // cambiar el propietario (userId).
+      allow update: if request.auth != null 
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid;
+
+      // 4. ELIMINACIÓN:
+      // Solo el dueño de la tarea puede borrarla.
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // Cualquier otra colección queda denegada por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
