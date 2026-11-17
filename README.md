@@ -1,16 +1,98 @@
-# React + Vite
+# Tareas App (PWA)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplicacion web progresiva para la gestion de tareas con React, Vite y Firebase.
 
-Currently, two official plugins are available:
+## Requisitos previos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js (version 18 o superior)
+- Cuenta en Firebase con un proyecto configurado
 
-## React Compiler
+## Instalacion y ejecucion
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Clonar e instalar dependencias
 
-## Expanding the Oxlint configuration
+```bash
+cd tareas-app
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 2. Configurar Firebase
+
+Crea el archivo `src/firebase.js` (puedes basarte en `src/firebase.example.js`) y coloca las credenciales de tu proyecto de Firebase:
+
+```javascript
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+export const db = getFirestore(app);
+```
+
+> Nota: El archivo `src/firebase.js` se encuentra ignorado en `.gitignore` para no exponer tus credenciales en el repositorio.
+
+### 3. Configurar servicios en Firebase Console
+
+1. **Authentication**:
+   - En la seccion *Sign-in method*, habilita los proveedores:
+     - Correo electronico / contrasena
+     - Google
+
+2. **Firestore Database**:
+   - En la pestana *Reglas*, copia y publica el contenido del archivo `firestore.rules`:
+
+```firestore-security-rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tareas/{tareaId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null 
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+### 4. Iniciar el servidor local
+
+```bash
+npm run dev
+```
+
+Abre en tu navegador la URL que muestra la terminal (por ejemplo, `http://localhost:5173`).
+
+## Funcionalidades implementadas
+
+- **Autenticacion**: Registro e inicio de sesion con correo/contrasena y Google. Rutas protegidas y cierre de sesion.
+- **Firestore en tiempo real**: Creacion, lectura, edicion, marcado de completada y eliminacion sincronizadas con `onSnapshot`.
+- **Reglas de seguridad**: Solo el propietario autenticado puede ver y modificar sus propias tareas.
+- **PWA**: Incluye Web App Manifest y Service Worker; se puede instalar desde el navegador.
+
+## Comandos disponibles
+
+- `npm run dev`: Inicia el servidor de desarrollo local.
+- `npm run build`: Genera los archivos de produccion en la carpeta `dist`.
+- `npm run preview`: Previsualiza la version compilada de produccion.
